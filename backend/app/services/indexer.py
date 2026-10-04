@@ -34,8 +34,12 @@ from app.services.blockchain import (
 def hex_to_str(val) -> str:
     """Format bytes / HexBytes to 0x-hex string."""
     if isinstance(val, (bytes, HexBytes)):
-        return "0x" + val.hex()
-    return str(val)
+        h = val.hex()
+        return h if h.startswith("0x") else "0x" + h
+    s = str(val)
+    while s.startswith("0x0x"):
+        s = s[2:]
+    return s
 
 
 def normalize_addr(val) -> str:

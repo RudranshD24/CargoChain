@@ -4,7 +4,11 @@ Loads settings from environment variables. P2 will expand with DB, IPFS
 and chain settings. Uses pydantic-settings for validation.
 """
 
+from pathlib import Path
 from pydantic_settings import BaseSettings
+
+_ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+_ENV_FILES = [str(_ROOT_DIR / ".env"), ".env"]
 
 
 class Settings(BaseSettings):
@@ -35,7 +39,11 @@ class Settings(BaseSettings):
     # Deployment
     deployment_file: str = "deployments/local.json"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_file": _ENV_FILES,
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()
