@@ -1,0 +1,41 @@
+# CargoChain — Local development services
+# Usage: docker compose up -d
+# PostgreSQL and IPFS only; Ganache, API and frontend run locally.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cargochain-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cargochain}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cargochain_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-cargochain}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cargochain}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: cargochain-ipfs
+    restart: unless-stopped
+    ports:
+      - "5001:5001"   # API
+      - "8080:8080"   # Gateway
+    volumes:
+      - ipfsdata:/data/ipfs
+    healthcheck:
+      test: ["CMD", "ipfs", "id"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:
+  ipfsdata:

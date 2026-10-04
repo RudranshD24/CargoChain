@@ -1,0 +1,12 @@
+[project]
+name = "cargochain-oracle"
+version = "0.1.0"
+description = "Simulated logistics oracle for CargoChain"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

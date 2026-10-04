@@ -1,0 +1,61 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Node / Hardhat
+node_modules/
+cache/
+artifacts/
+typechain-types/
+coverage/
+coverage.json
+gasReporterOutput.json
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+docker-compose.override.yml
+
+# IPFS
+.ipfs/
+
+# Deployment artifacts (keep local.json template)
+# deployments/ is tracked but generated addresses change
+
+# Logs
+*.log
+logs/
