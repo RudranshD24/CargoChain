@@ -344,23 +344,48 @@ copy .env.example .env
 ```
 Ensure `.env` contains:
 ```env
+# --- Ganache / Local Chain ---
 RPC_URL=http://127.0.0.1:8545
 CHAIN_ID=1337
+
+# --- PostgreSQL ---
 POSTGRES_USER=cargochain
-POSTGRES_PASSWORD=cargochain_dev
+POSTGRES_PASSWORD=<YOUR_LOCAL_DB_PASSWORD>
 POSTGRES_DB=cargochain
-DATABASE_URL=postgresql://cargochain:cargochain_dev@localhost:5432/cargochain
+DATABASE_URL=postgresql://cargochain:<YOUR_LOCAL_DB_PASSWORD>@localhost:5432/cargochain
+
+# --- IPFS (Local Kubo / IPFS Desktop) ---
 IPFS_API_URL=http://127.0.0.1:5001
 IPFS_GATEWAY_URL=http://127.0.0.1:8080
+
+# --- Backend / FastAPI ---
 API_HOST=0.0.0.0
 API_PORT=8000
-JWT_SECRET=your_generated_32_byte_secret_hex
-ORACLE_PRIVATE_KEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+JWT_SECRET=<GENERATE_WITH_PYTHON_SECRETS>
+JWT_ALGORITHM=HS256
+JWT_EXPIRY_MINUTES=60
+MAX_UPLOAD_MB=10
+
+# --- Oracle Service ---
+ORACLE_PORT=8100
+ORACLE_PRIVATE_KEY=<YOUR_GANACHE_ACCOUNT_6_PRIVATE_KEY>
+
+# --- Deployment ---
 DEPLOYMENT_FILE=deployments/local.json
+
+# --- Frontend Public Variables ---
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 NEXT_PUBLIC_CHAIN_ID=1337
 NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
 ```
+
+> **Credential & Secret Guidance:**
+> - **`JWT_SECRET`**: Generate a secure 32-byte hex secret via:
+>   ```powershell
+>   python -c "import secrets; print(secrets.token_hex(32))"
+>   ```
+> - **`ORACLE_PRIVATE_KEY`**: Copy the private key of Account 6 from your Ganache UI. This must remain a restricted test account separate from the Transporter. **Never commit `.env` or real private keys.**
+> - **`POSTGRES_PASSWORD`**: Set matching the password configured in your `docker-compose.yml`.
 
 Create `frontend/.env.local`:
 ```env
