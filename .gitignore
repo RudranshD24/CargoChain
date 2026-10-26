@@ -52,6 +52,7 @@ docker-compose.override.yml
 
 # IPFS
 .ipfs/
+backend/data/
 
 # Deployment artifacts (keep local.json template)
 # deployments/ is tracked but generated addresses change
