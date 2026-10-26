@@ -575,6 +575,12 @@ export default function ShipmentConsolePage() {
             </>
           )}
 
+          {!isTransporter && currentStatus === 0 && (
+            <span className="text-xs text-amber-700 dark:text-amber-300 font-medium bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-900">
+              Awaiting Transporter Acceptance &bull; Switch to <strong>Account 2</strong> (<code className="font-mono text-[11px]">{shipment.transporter?.slice(0, 6)}...{shipment.transporter?.slice(-4)}</code>) to accept.
+            </span>
+          )}
+
           {isTransporter && currentStatus === 1 && (
             <button
               onClick={handleStartTransit}
@@ -583,6 +589,12 @@ export default function ShipmentConsolePage() {
               <Truck className="w-3.5 h-3.5" />
               Dispatch &amp; Start Transit
             </button>
+          )}
+
+          {!isTransporter && currentStatus === 1 && (
+            <span className="text-xs text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-900">
+              Awaiting Transporter Dispatch &bull; Switch to <strong>Account 2</strong> (<code className="font-mono text-[11px]">{shipment.transporter?.slice(0, 6)}...{shipment.transporter?.slice(-4)}</code>) to start transit.
+            </span>
           )}
 
           {/* Shipper cancel */}
