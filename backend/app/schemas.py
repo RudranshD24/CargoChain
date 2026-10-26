@@ -179,6 +179,11 @@ class EscrowStateResponse(BaseModel):
     isReleased: bool
     isRefunded: bool
     isFrozen: bool = False
+    deposited: bool = False
+    eligible: bool = False
+    released: bool = False
+    refunded: bool = False
+    frozen: bool = False
     amountWei: str
     events: List[Dict[str, Any]]
 

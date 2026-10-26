@@ -215,6 +215,9 @@ export function parseContractError(err: any): string {
   if (str.includes("EscrowRequired") || str.includes("0x5025ce52")) {
     return "Transaction Reverted: Escrow Deposit Required. Freight payment must be deposited into escrow by the Shipper (Account 1) before the shipment can be dispatched into transit.";
   }
+  if (str.includes("AlreadyDeposited") || str.includes("0x991b95f9")) {
+    return "Transaction Reverted: Escrow has already been deposited for this shipment. Please proceed with transit dispatch.";
+  }
   if (str.includes("missing revert data") && str.includes("estimateGas")) {
     return "Transaction Reverted by Smart Contract: Gas estimation failed. The contract rejected this transaction. Please confirm you are connected with the correct role (e.g. Account 1 for Shipper) and that all assigned participant addresses are valid.";
   }

@@ -155,7 +155,11 @@ export default function ShipmentConsolePage() {
   // Escrow state helpers
   const paymentAmountWei = shipment.paymentAmountWei || shipment.paymentAmount || "0";
   const hasEscrowRequirement = BigInt(paymentAmountWei) > BigInt(0);
-  const isEscrowDeposited = Boolean(escrow?.deposited);
+  const isEscrowDeposited = Boolean(escrow?.deposited ?? escrow?.isDeposited);
+  const isEscrowReleased = Boolean(escrow?.released ?? escrow?.isReleased);
+  const isEscrowRefunded = Boolean(escrow?.refunded ?? escrow?.isRefunded);
+  const isEscrowEligible = Boolean(escrow?.eligible ?? escrow?.isEligible);
+  const isEscrowFrozen = Boolean(escrow?.frozen ?? escrow?.isFrozen);
 
   // ──────── Contract Action Handlers ────────
 
@@ -1175,7 +1179,7 @@ export default function ShipmentConsolePage() {
             <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col gap-2">
               <span className="text-slate-400 font-semibold">Escrow Deposit Status</span>
               <div className="text-base font-bold">
-                {escrow?.deposited ? (
+                {isEscrowDeposited ? (
                   <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" /> Funded on-chain in EscrowManager
                   </span>
@@ -1202,16 +1206,16 @@ export default function ShipmentConsolePage() {
               </button>
             )}
 
-            {isTransporter && escrow?.deposited && !escrow?.released && currentStatus === 6 && (
+            {isTransporter && isEscrowDeposited && !isEscrowReleased && currentStatus === 6 && (
               <button
                 onClick={handleReleaseEscrow}
                 className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20"
               >
-                Release Payment ({ethers.formatEther(escrow?.amountWei)} ETH)
+                Release Payment ({ethers.formatEther(escrow?.amountWei || paymentAmountWei)} ETH)
               </button>
             )}
 
-            {isShipper && escrow?.deposited && !escrow?.refunded && (currentStatus === 7 || currentStatus === 9) && (
+            {isShipper && isEscrowDeposited && !isEscrowRefunded && (currentStatus === 7 || currentStatus === 9) && (
               <button
                 onClick={handleRefundEscrow}
                 className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/20"
@@ -1220,13 +1224,13 @@ export default function ShipmentConsolePage() {
               </button>
             )}
 
-            {escrow?.released && (
+            {isEscrowReleased && (
               <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" /> Escrow payment has been released to Transporter.
               </div>
             )}
 
-            {escrow?.refunded && (
+            {isEscrowRefunded && (
               <div className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" /> Escrow funds refunded to Shipper.
               </div>

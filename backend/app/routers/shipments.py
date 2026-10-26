@@ -308,6 +308,24 @@ def get_shipment_escrow(
     )
     is_frozen = (has_frozen and not has_unfrozen_or_resolved) or shipment.status == 8
 
+    # On-chain EscrowManager fallback check for instant consistency
+    if not is_deposited or not is_released:
+        try:
+            from app.services.blockchain import get_contract_instance
+            em = get_contract_instance("EscrowManager")
+            onchain_escrow = em.functions.getEscrow(id).call()
+            # (deposited, eligible, released, refunded, amount)
+            if onchain_escrow[0]:
+                is_deposited = True
+            if onchain_escrow[1]:
+                is_eligible = True
+            if onchain_escrow[2]:
+                is_released = True
+            if onchain_escrow[3]:
+                is_refunded = True
+        except Exception:
+            pass
+
     event_dicts = [
         {
             "eventType": e.event_type,
@@ -326,6 +344,11 @@ def get_shipment_escrow(
         isReleased=is_released,
         isRefunded=is_refunded,
         isFrozen=is_frozen,
+        deposited=is_deposited,
+        eligible=is_eligible,
+        released=is_released,
+        refunded=is_refunded,
+        frozen=is_frozen,
         amountWei=str(shipment.payment_amount),
         events=event_dicts,
     )
