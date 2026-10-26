@@ -587,10 +587,32 @@ export default function ShipmentConsolePage() {
             </span>
           )}
 
+          {/* Escrow deposit requirement before dispatch when paymentAmount > 0 */}
+          {currentStatus === 1 && Number(shipment.paymentAmount || "0") > 0 && !escrow?.deposited && (
+            <>
+              {isShipper && (
+                <button
+                  onClick={handleDepositEscrow}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5 animate-pulse"
+                >
+                  <Coins className="w-3.5 h-3.5" />
+                  Deposit {ethers.formatEther(shipment.paymentAmount)} ETH Escrow
+                </button>
+              )}
+              {isTransporter && (
+                <span className="text-xs text-amber-700 dark:text-amber-300 font-medium bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-900 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  Escrow Required &bull; Switch to <strong>Account 1 (Shipper)</strong> to deposit {ethers.formatEther(shipment.paymentAmount)} ETH into Escrow before dispatch.
+                </span>
+              )}
+            </>
+          )}
+
           {isTransporter && currentStatus === 1 && (
             <button
               onClick={handleStartTransit}
-              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5"
+              disabled={Number(shipment.paymentAmount || "0") > 0 && !escrow?.deposited}
+              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5"
             >
               <Truck className="w-3.5 h-3.5" />
               Dispatch &amp; Start Transit

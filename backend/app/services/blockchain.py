@@ -7,8 +7,8 @@ from typing import Dict, Any, Optional
 from web3 import Web3
 from app.config import settings
 
-# Shared web3 instance with short timeout for responsiveness
-w3 = Web3(Web3.HTTPProvider(settings.rpc_url, request_kwargs={"timeout": 0.5}))
+# Shared web3 instance with responsive timeout
+w3 = Web3(Web3.HTTPProvider(settings.rpc_url, request_kwargs={"timeout": 5.0}))
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 

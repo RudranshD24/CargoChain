@@ -193,6 +193,8 @@ export function parseContractError(err: any): string {
         return "Transaction Reverted: Payment release is not yet eligible for this shipment.";
       case "AlreadyReleased":
         return "Transaction Reverted: Payment has already been released.";
+      case "EscrowRequired":
+        return "Transaction Reverted: Escrow Deposit Required. Freight payment has not been deposited into escrow yet. The Shipper (Account 1) must deposit the payment before transit can be dispatched.";
       default:
         return `Transaction Reverted (${errorName}): Action rejected by smart contract rules.`;
     }
@@ -209,6 +211,9 @@ export function parseContractError(err: any): string {
   }
   if (str.includes("DuplicateExternalRef") || str.includes("0xb9c6e00b")) {
     return "Transaction Reverted: A shipment with this External Reference already exists.";
+  }
+  if (str.includes("EscrowRequired") || str.includes("0x5025ce52")) {
+    return "Transaction Reverted: Escrow Deposit Required. Freight payment must be deposited into escrow by the Shipper (Account 1) before the shipment can be dispatched into transit.";
   }
   if (str.includes("missing revert data") && str.includes("estimateGas")) {
     return "Transaction Reverted by Smart Contract: Gas estimation failed. The contract rejected this transaction. Please confirm you are connected with the correct role (e.g. Account 1 for Shipper) and that all assigned participant addresses are valid.";
