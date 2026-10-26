@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import {
   Brain,
@@ -22,7 +22,7 @@ export function MLEtaPredictionCard({ shipmentId }: MLEtaPredictionCardProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPrediction = async () => {
+  const fetchPrediction = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -33,13 +33,13 @@ export function MLEtaPredictionCard({ shipmentId }: MLEtaPredictionCardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [shipmentId]);
 
   useEffect(() => {
     if (shipmentId) {
       fetchPrediction();
     }
-  }, [shipmentId]);
+  }, [shipmentId, fetchPrediction]);
 
   const getRiskBadge = (category: string, prob: number) => {
     const pct = Math.round(prob * 100);

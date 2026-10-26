@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { api } from "@/lib/api";
 import { STATUS_LABELS } from "@/contracts/config";
@@ -27,7 +27,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
@@ -48,11 +48,11 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [isAuthenticated]);
+  }, [fetchAnalytics]);
 
   if (!isAuthenticated) {
     return (

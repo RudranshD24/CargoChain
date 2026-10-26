@@ -50,7 +50,7 @@ export default function AuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, page, contractFilter, eventTypeFilter]);
+  }, [isAuthenticated, page, pageSize, contractFilter, eventTypeFilter]);
 
   useEffect(() => {
     fetchAuditLogs();
