@@ -163,15 +163,15 @@ export const api = {
   },
 
   async getShipmentMilestones(id: number | string) {
-    return apiFetch<{ items: any[]; total: number }>(`/shipments/${id}/milestones`);
+    return apiFetch<any>(`/shipments/${id}/milestones`);
   },
 
   async getShipmentCustody(id: number | string) {
-    return apiFetch<{ items: any[]; total: number }>(`/shipments/${id}/custody`);
+    return apiFetch<any>(`/shipments/${id}/custody`);
   },
 
   async getShipmentDocuments(id: number | string) {
-    return apiFetch<{ items: any[]; total: number }>(`/shipments/${id}/documents`);
+    return apiFetch<any>(`/shipments/${id}/documents`);
   },
 
   async getShipmentEscrow(id: number | string) {

@@ -134,13 +134,16 @@ class ShipmentsListResponse(BaseModel):
 class MilestoneItem(BaseModel):
     index: int
     type: int
+    milestoneType: Optional[int] = None
     typeName: str
     location: str
     lat: Optional[int] = None
     lon: Optional[int] = None
     note: Optional[str] = None
+    notes: Optional[str] = None
     source: str
     submittedBy: str
+    submitter: Optional[str] = None
     submitterRole: int
     submitterRoleName: str
     blockNumber: int

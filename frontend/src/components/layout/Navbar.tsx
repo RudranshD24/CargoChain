@@ -17,7 +17,6 @@ import {
   Shield,
   Layers,
   Radio,
-  Network,
 } from "lucide-react";
 
 export function Navbar() {
@@ -50,7 +49,6 @@ export function Navbar() {
     { href: "/participants", label: "Participants", icon: Users, show: isAdmin },
     { href: "/audit", label: "Audit Log", icon: History, show: isAdmin || isInspector },
     { href: "/analytics", label: "Analytics", icon: BarChart3, show: isAuthenticated },
-    { href: "/consensus", label: "Consensus", icon: Network, show: true },
   ];
 
   return (

@@ -15,7 +15,6 @@ import {
 } from "@/contracts/config";
 import { getContracts, executeTransaction, TxStatus, normalizeEvmAddress } from "@/lib/web3";
 import { TxModal } from "@/components/ui/TxModal";
-import { MLEtaPredictionCard } from "@/components/MLEtaPredictionCard";
 import {
   Truck,
   ArrowLeft,
@@ -70,33 +69,53 @@ export default function ShipmentConsolePage() {
   const [transferCustodianAddr, setTransferCustodianAddr] = useState("");
   const [disputeReason, setDisputeReason] = useState<number>(0);
   const [disputeNotes, setDisputeNotes] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadAllShipmentData = useCallback(async () => {
+  const loadAllShipmentData = useCallback(async (silent = false) => {
     if (!isAuthenticated || !shipmentId) return;
-    setLoading(true);
-    setError(null);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const [sRes, mRes, cRes, dRes, eRes] = await Promise.all([
         api.getShipment(shipmentId),
-        api.getShipmentMilestones(shipmentId).catch(() => ({ items: [], total: 0 })),
-        api.getShipmentCustody(shipmentId).catch(() => ({ items: [], total: 0 })),
-        api.getShipmentDocuments(shipmentId).catch(() => ({ items: [], total: 0 })),
+        api.getShipmentMilestones(shipmentId).catch(() => []),
+        api.getShipmentCustody(shipmentId).catch(() => []),
+        api.getShipmentDocuments(shipmentId).catch(() => []),
         api.getShipmentEscrow(shipmentId).catch(() => null),
       ]);
+      const normalizeList = (res: any) => {
+        if (Array.isArray(res)) return res;
+        if (res && Array.isArray(res.items)) return res.items;
+        return [];
+      };
       setShipment(sRes);
-      setMilestones(mRes.items || []);
-      setCustodyHistory(cRes.items || []);
-      setDocuments(dRes.items || []);
+      setMilestones(normalizeList(mRes));
+      setCustodyHistory(normalizeList(cRes));
+      setDocuments(normalizeList(dRes));
       setEscrow(eRes);
     } catch (err: any) {
-      setError(err.message || "Failed to load shipment details");
+      if (!silent) {
+        setError(err.message || "Failed to load shipment details");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
+      setIsRefreshing(false);
     }
   }, [isAuthenticated, shipmentId]);
 
   useEffect(() => {
     loadAllShipmentData();
+    // Auto-refresh timeline, milestones, and on-chain state every 3 seconds
+    const interval = setInterval(() => {
+      loadAllShipmentData(true);
+    }, 3000);
+    return () => clearInterval(interval);
   }, [loadAllShipmentData]);
 
   if (!isAuthenticated) {
@@ -504,11 +523,11 @@ export default function ShipmentConsolePage() {
 
           {/* Quick Refresh */}
           <button
-            onClick={loadAllShipmentData}
+            onClick={() => loadAllShipmentData(false)}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 w-fit"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-blue-500" : ""}`} />
+            <span>{isRefreshing ? "Syncing..." : "Refresh"}</span>
           </button>
         </div>
 
@@ -749,7 +768,6 @@ export default function ShipmentConsolePage() {
       {/* Tab 1: Overview */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <MLEtaPredictionCard shipmentId={shipmentId} />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col gap-6">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Cargo Specifications</h2>
@@ -822,11 +840,25 @@ export default function ShipmentConsolePage() {
       {/* Tab 2: Timeline */}
       {activeTab === "timeline" && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-              Provenance &amp; Tracking History
-            </h2>
-            <div className="flex items-center gap-3 text-[11px]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+                Provenance &amp; Tracking History
+              </h2>
+              <button
+                onClick={() => loadAllShipmentData(false)}
+                disabled={isRefreshing}
+                className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                title="Refresh Tracking History from blockchain"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-blue-500" : ""}`} />
+                <span>{isRefreshing ? "Syncing..." : "Live Sync"}</span>
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-[11px]">
+              <span className="flex items-center gap-1 text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" /> Genesis / Lifecycle
+              </span>
               <span className="flex items-center gap-1 text-slate-500">
                 <span className="w-2 h-2 rounded-full bg-blue-500" /> Manual Milestone
               </span>
@@ -836,64 +868,138 @@ export default function ShipmentConsolePage() {
             </div>
           </div>
 
-          {milestones.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-400">
-              No milestones recorded yet for this shipment.
+          <div className="relative pl-6 border-l-2 border-slate-200 dark:border-slate-800 flex flex-col gap-6">
+            {/* Initial Creation & Anchor Event */}
+            <div className="relative">
+              <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 bg-white dark:bg-slate-900 border-emerald-500" />
+              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 dark:text-white">Shipment Registered &amp; Anchored</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                      Genesis
+                    </span>
+                  </div>
+                  <span className="text-slate-400 font-mono text-[11px]">
+                    {shipment.createdAt ? new Date(shipment.createdAt).toLocaleString() : "Block confirmed"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="font-medium">{shipment.origin || "Origin Facility"}</span>
+                </div>
+                <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                  <span>Shipper: {shipment.shipper}</span>
+                  {shipment.createdTxHash && <span>Tx: {shipment.createdTxHash.slice(0, 10)}...</span>}
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="relative pl-6 border-l-2 border-slate-200 dark:border-slate-800 flex flex-col gap-6">
-              {milestones.map((m, idx) => {
-                const typeLabel = MILESTONE_TYPE_LABELS[m.milestoneType] || `Type ${m.milestoneType}`;
-                const dateStr = new Date(Number(m.blockTime) * 1000).toLocaleString();
-                const isOracle = m.isOracle || m.source === "oracle" || m.submitterRole === 7;
 
-                return (
-                  <div key={idx} className="relative">
-                    <div
-                      className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 bg-white dark:bg-slate-900 ${
-                        isOracle ? "border-purple-500" : "border-blue-500"
-                      }`}
-                    />
-                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 dark:text-white">{typeLabel}</span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              isOracle
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                                : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                            }`}
-                          >
-                            {isOracle ? "Oracle Reported (External Claim)" : "Manual"}
-                          </span>
-                        </div>
-                        <span className="text-slate-400 font-mono text-[11px]">{dateStr}</span>
+            {/* Transporter Acceptance Event if Accepted */}
+            {shipment.status >= 1 && (
+              <div className="relative">
+                <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 bg-white dark:bg-slate-900 border-indigo-500" />
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900 dark:text-white">Shipment Accepted by Transporter</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+                        Accepted
+                      </span>
+                    </div>
+                    <span className="text-slate-400 font-mono text-[11px]">
+                      {shipment.acceptedAt && Number(shipment.acceptedAt) > 0
+                        ? new Date(Number(shipment.acceptedAt) * 1000).toLocaleString()
+                        : "Accepted on-chain"}
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <span>Transporter: {shipment.transporter}</span>
+                    <span>Status: Accepted</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Escrow Funded Event if Deposited */}
+            {isEscrowDeposited && (
+              <div className="relative">
+                <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 bg-white dark:bg-slate-900 border-amber-500" />
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900 dark:text-white">Escrow Payment Funded</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        {ethers.formatEther(paymentAmountWei)} Test ETH
+                      </span>
+                    </div>
+                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Funded
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Freight payment locked on-chain in EscrowManager. Reversible upon dispute or cancellation, released to Transporter on delivery.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Recorded Milestones */}
+            {milestones.map((m, idx) => {
+              const typeVal = m.milestoneType !== undefined ? m.milestoneType : m.type;
+              const typeLabel = MILESTONE_TYPE_LABELS[typeVal] || m.typeName || `Milestone ${typeVal ?? ""}`;
+              const ts = Number(m.blockTime);
+              const dateStr = ts > 0 ? new Date(ts > 1e11 ? ts : ts * 1000).toLocaleString() : "Confirmed";
+              const isOracle = m.isOracle || m.source === "oracle" || m.submitterRole === 7;
+              const notesText = m.notes || m.note;
+              const submitterAddr = m.submitter || m.submittedBy || "Participant";
+
+              return (
+                <div key={idx} className="relative">
+                  <div
+                    className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 bg-white dark:bg-slate-900 ${
+                      isOracle ? "border-purple-500" : "border-blue-500"
+                    }`}
+                  />
+                  <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 dark:text-white">{typeLabel}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isOracle
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                          }`}
+                        >
+                          {isOracle ? "Oracle Reported (External Claim)" : "Manual Checkpoint"}
+                        </span>
                       </div>
+                      <span className="text-slate-400 font-mono text-[11px]">{dateStr}</span>
+                    </div>
 
-                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="font-medium">{m.location || "Transit Point"}</span>
-                      </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-medium">{m.location || "Transit Point"}</span>
+                    </div>
 
-                      {m.notes && <p className="text-xs text-slate-500 italic mt-0.5">{m.notes}</p>}
+                    {notesText && <p className="text-xs text-slate-500 italic mt-0.5">{notesText}</p>}
 
-                      {isOracle && (
-                        <p className="text-[10px] text-purple-700 dark:text-purple-300 bg-purple-50/70 dark:bg-purple-950/40 p-2 rounded-lg border border-purple-200 dark:border-purple-900 mt-1">
-                          ℹ️ <strong>Oracle Trust Boundary:</strong> External milestone claim submitted by authorized service account. Per CargoChain specifications, this transaction proves claim submission, not physical ground-truth.
-                        </p>
-                      )}
+                    {isOracle && (
+                      <p className="text-[10px] text-purple-700 dark:text-purple-300 bg-purple-50/70 dark:bg-purple-950/40 p-2 rounded-lg border border-purple-200 dark:border-purple-900 mt-1">
+                        ℹ️ <strong>Oracle Trust Boundary:</strong> External milestone claim submitted by authorized service account. Per CargoChain specifications, this transaction proves claim submission, not physical ground-truth.
+                      </p>
+                    )}
 
-                      <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
-                        <span>Submitter: {m.submitter}</span>
-                        <span>Tx: {m.txHash?.substring(0, 10)}...</span>
-                      </div>
+                    <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                      <span>Submitter: {submitterAddr}</span>
+                      {m.txHash && <span>Tx: {m.txHash.slice(0, 10)}...</span>}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
