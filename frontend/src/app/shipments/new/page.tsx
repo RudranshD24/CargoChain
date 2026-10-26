@@ -13,12 +13,15 @@ import {
   Shield,
   ArrowLeft,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
+import { DEMO_ACCOUNTS, ROLE_LABELS } from "@/contracts/config";
+
 export default function NewShipmentPage() {
   const router = useRouter();
-  const { role, isAuthenticated, loginWithSignature } = useWallet();
+  const { role, roleName, account, isAuthenticated, loginWithSignature } = useWallet();
 
   const [form, setForm] = useState({
     externalRef: `CARGO-${Date.now().toString().slice(-6)}`,
@@ -29,10 +32,10 @@ export default function NewShipmentPage() {
     destLat: "28.6139",
     destLon: "77.2090",
     geofenceRadiusM: "1000",
-    transporter: "",
-    receiver: "",
-    warehouse: "",
-    inspector: "",
+    transporter: DEMO_ACCOUNTS.transporter,
+    receiver: DEMO_ACCOUNTS.receiver,
+    warehouse: DEMO_ACCOUNTS.warehouse,
+    inspector: DEMO_ACCOUNTS.inspector,
     expectedDelivery: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
     paymentEth: "0.5",
   });
@@ -58,23 +61,18 @@ export default function NewShipmentPage() {
   }
 
   const isShipper = role === 2;
-  const isAdmin = role === 1;
-
-  if (!isShipper && !isAdmin) {
-    return (
-      <div className="p-8 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-2xl text-center">
-        <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
-        <h3 className="text-base font-bold text-rose-800 dark:text-rose-200">Unauthorized Role</h3>
-        <p className="text-xs text-rose-700 dark:text-rose-400 mt-1">
-          Only registered <strong>Shippers</strong> or Administrators are authorized to register on-chain shipments.
-        </p>
-      </div>
-    );
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    // Enforce smart contract role prerequisite before attempting on-chain transaction
+    if (!isShipper) {
+      setFormError(
+        `Unauthorized: Only accounts registered with Role.Shipper can create shipments on-chain. You are currently connected as ${roleName || "Unassigned"} (${account}). Please switch to Account 1 (Shipper: ${DEMO_ACCOUNTS.shipper}) in MetaMask.`
+      );
+      return;
+    }
 
     // Basic EVM address validation
     if (!ethers.isAddress(form.transporter)) {
@@ -163,6 +161,24 @@ export default function NewShipmentPage() {
         </div>
       </div>
 
+      {/* Role Mismatch Warning Banner */}
+      {!isShipper && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-xs font-bold text-amber-800 dark:text-amber-200">
+              Role Mismatch: Connected as {roleName || "Unassigned"} ({account ? `${account.slice(0, 6)}...${account.slice(-4)}` : "Not connected"})
+            </h4>
+            <p className="text-xs text-amber-700/90 dark:text-amber-300/80 mt-1">
+              By design, CargoChain smart contracts enforce <strong>separation of duties</strong>: only registered <strong>Shippers</strong> (<code className="px-1.5 py-0.5 bg-amber-500/20 rounded font-mono text-[11px]">Role.Shipper</code>) can create shipments.
+            </p>
+            <p className="text-xs text-amber-700/90 dark:text-amber-300/80 mt-1.5">
+              👉 Please open <strong>MetaMask</strong> and switch to <strong>Account 1</strong> (Shipper address: <code className="px-1.5 py-0.5 bg-amber-500/20 rounded font-mono text-[11px] font-bold">{DEMO_ACCOUNTS.shipper}</code>) to sign and submit this shipment.
+            </p>
+          </div>
+        </div>
+      )}
+
       {formError && (
         <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
@@ -245,10 +261,28 @@ export default function NewShipmentPage() {
 
         {/* Section 2: Assigned Stakeholders */}
         <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-            <Truck className="w-4 h-4 text-indigo-500" />
-            2. Assigned Stakeholders (Canonical Roles)
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+              <Truck className="w-4 h-4 text-indigo-500" />
+              2. Assigned Stakeholders (Canonical Roles)
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  transporter: DEMO_ACCOUNTS.transporter,
+                  receiver: DEMO_ACCOUNTS.receiver,
+                  warehouse: DEMO_ACCOUNTS.warehouse,
+                  inspector: DEMO_ACCOUNTS.inspector,
+                }));
+              }}
+              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3" />
+              Reset Demo Stakeholders
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
               <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
@@ -262,7 +296,7 @@ export default function NewShipmentPage() {
                 onChange={(e) => setForm({ ...form, transporter: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white"
               />
-              <span className="text-[10px] text-slate-400">Must be registered with Role.Transporter</span>
+              <span className="text-[10px] text-slate-400">Must be registered with Role.Transporter (Account 2)</span>
             </div>
 
             <div>
@@ -277,7 +311,7 @@ export default function NewShipmentPage() {
                 onChange={(e) => setForm({ ...form, receiver: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white"
               />
-              <span className="text-[10px] text-slate-400">Must be registered with Role.Receiver</span>
+              <span className="text-[10px] text-slate-400">Must be registered with Role.Receiver (Account 5)</span>
             </div>
 
             <div>
@@ -291,6 +325,7 @@ export default function NewShipmentPage() {
                 onChange={(e) => setForm({ ...form, warehouse: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white"
               />
+              <span className="text-[10px] text-slate-400">Role.Warehouse (Account 3)</span>
             </div>
 
             <div>
@@ -304,6 +339,7 @@ export default function NewShipmentPage() {
                 onChange={(e) => setForm({ ...form, inspector: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-900 dark:text-white"
               />
+              <span className="text-[10px] text-slate-400">Role.Inspector (Account 4)</span>
             </div>
           </div>
         </div>
@@ -357,10 +393,15 @@ export default function NewShipmentPage() {
           </Link>
           <button
             type="submit"
-            disabled={submitting}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50"
+            disabled={submitting || !isShipper}
+            title={!isShipper ? "Switch to Account 1 (Shipper) in MetaMask to submit" : undefined}
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all"
           >
-            {submitting ? "Signing in Wallet..." : "Sign & Create Shipment"}
+            {!isShipper
+              ? "Switch to Account 1 (Shipper) in MetaMask"
+              : submitting
+              ? "Signing in Wallet..."
+              : "Sign & Create Shipment"}
           </button>
         </div>
       </form>

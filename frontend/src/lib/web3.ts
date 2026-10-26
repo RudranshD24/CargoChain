@@ -156,14 +156,7 @@ export async function executeTransaction(
 
     return receipt;
   } catch (err: any) {
-    let errorMsg = err.message || "Transaction failed";
-    if (err.code === "ACTION_REJECTED" || err.code === 4001) {
-      errorMsg = "Transaction was cancelled / rejected in MetaMask.";
-    } else if (err.reason) {
-      errorMsg = `Reverted: ${err.reason}`;
-    } else if (err.data?.message) {
-      errorMsg = `Reverted: ${err.data.message}`;
-    }
+    const errorMsg = parseContractError(err);
 
     onStatusUpdate({
       step: "error",
@@ -171,4 +164,57 @@ export async function executeTransaction(
     });
     throw new Error(errorMsg);
   }
+}
+
+/**
+ * Parses raw ethers and EVM revert errors into clear, human-readable explanations.
+ */
+export function parseContractError(err: any): string {
+  if (!err) return "Transaction failed";
+  if (err.code === "ACTION_REJECTED" || err.code === 4001) {
+    return "Transaction was cancelled / rejected in MetaMask.";
+  }
+  if (err.revert?.name) {
+    const errorName = err.revert.name;
+    switch (errorName) {
+      case "Unauthorized":
+        return "Transaction Reverted: Unauthorized. Your connected wallet does not have the required role for this action.";
+      case "DuplicateExternalRef":
+        return "Transaction Reverted: A shipment with this External Reference already exists.";
+      case "InvalidTransition":
+        return "Transaction Reverted: Invalid shipment status transition.";
+      case "NotAssigned":
+        return "Transaction Reverted: Your wallet is not assigned to this shipment.";
+      case "NotCustodian":
+        return "Transaction Reverted: Only the current physical custodian can perform this custody transfer.";
+      case "AlreadyDeposited":
+        return "Transaction Reverted: Escrow has already been deposited for this shipment.";
+      case "NotEligible":
+        return "Transaction Reverted: Payment release is not yet eligible for this shipment.";
+      case "AlreadyReleased":
+        return "Transaction Reverted: Payment has already been released.";
+      default:
+        return `Transaction Reverted (${errorName}): Action rejected by smart contract rules.`;
+    }
+  }
+  if (err.reason) {
+    return `Reverted: ${err.reason}`;
+  }
+  if (err.data?.message) {
+    return `Reverted: ${err.data.message}`;
+  }
+  const str = String(err.message || "");
+  if (str.includes("Unauthorized") || str.includes("0x9eb419e1")) {
+    return "Transaction Reverted: Unauthorized. Your connected wallet does not have the required role for this action (e.g. creating shipments requires the Shipper role).";
+  }
+  if (str.includes("DuplicateExternalRef") || str.includes("0xb9c6e00b")) {
+    return "Transaction Reverted: A shipment with this External Reference already exists.";
+  }
+  if (str.includes("missing revert data") && str.includes("estimateGas")) {
+    return "Transaction Reverted by Smart Contract: Gas estimation failed. The contract rejected this transaction. Please confirm you are connected with the correct role (e.g. Account 1 for Shipper) and that all assigned participant addresses are valid.";
+  }
+  if (err.shortMessage) {
+    return err.shortMessage;
+  }
+  return err.message || "Transaction failed";
 }
