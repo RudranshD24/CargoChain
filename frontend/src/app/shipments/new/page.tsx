@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ethers } from "ethers";
 import { useWallet } from "@/context/WalletContext";
-import { getContracts, executeTransaction, TxStatus } from "@/lib/web3";
+import { getContracts, executeTransaction, TxStatus, normalizeEvmAddress } from "@/lib/web3";
 import { TxModal } from "@/components/ui/TxModal";
 import {
   Boxes,
@@ -74,22 +74,37 @@ export default function NewShipmentPage() {
       return;
     }
 
-    // Basic EVM address validation
-    if (!ethers.isAddress(form.transporter)) {
-      setFormError("Valid EVM address required for Transporter");
+    // Normalize and validate EVM addresses (case-tolerant and whitespace-tolerant)
+    const transporterAddr = normalizeEvmAddress(form.transporter);
+    if (!transporterAddr) {
+      setFormError("Valid EVM address required for Transporter (40-hex Ethereum address)");
       return;
     }
-    if (!ethers.isAddress(form.receiver)) {
-      setFormError("Valid EVM address required for Receiver");
+
+    const receiverAddr = normalizeEvmAddress(form.receiver);
+    if (!receiverAddr) {
+      setFormError("Valid EVM address required for Receiver (40-hex Ethereum address)");
       return;
     }
-    if (form.warehouse && !ethers.isAddress(form.warehouse)) {
-      setFormError("Warehouse address is invalid");
-      return;
+
+    let warehouseAddr = ethers.ZeroAddress;
+    if (form.warehouse && form.warehouse.trim()) {
+      const parsed = normalizeEvmAddress(form.warehouse);
+      if (!parsed) {
+        setFormError("Warehouse address is invalid (must be a 40-hex Ethereum address or empty)");
+        return;
+      }
+      warehouseAddr = parsed;
     }
-    if (form.inspector && !ethers.isAddress(form.inspector)) {
-      setFormError("Inspector address is invalid");
-      return;
+
+    let inspectorAddr = ethers.ZeroAddress;
+    if (form.inspector && form.inspector.trim()) {
+      const parsed = normalizeEvmAddress(form.inspector);
+      if (!parsed) {
+        setFormError("Inspector address is invalid (must be a 40-hex Ethereum address or empty)");
+        return;
+      }
+      inspectorAddr = parsed;
     }
 
     setSubmitting(true);
@@ -112,10 +127,10 @@ export default function NewShipmentPage() {
         destLat: Math.round(parseFloat(form.destLat) * 1e6),
         destLon: Math.round(parseFloat(form.destLon) * 1e6),
         geofenceRadiusM: parseInt(form.geofenceRadiusM, 10),
-        transporter: form.transporter.trim(),
-        receiver: form.receiver.trim(),
-        warehouse: form.warehouse.trim() || ethers.ZeroAddress,
-        inspector: form.inspector.trim() || ethers.ZeroAddress,
+        transporter: transporterAddr,
+        receiver: receiverAddr,
+        warehouse: warehouseAddr,
+        inspector: inspectorAddr,
         expectedDelivery: deliveryTimestamp,
         paymentAmount: paymentWei,
       };

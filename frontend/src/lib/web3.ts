@@ -218,3 +218,20 @@ export function parseContractError(err: any): string {
   }
   return err.message || "Transaction failed";
 }
+
+/**
+ * Normalizes and validates an EVM address regardless of casing or whitespace.
+ * Returns the standard checksummed address, or null if invalid.
+ */
+export function normalizeEvmAddress(addr?: string | null): string | null {
+  if (!addr) return null;
+  const cleaned = addr.trim();
+  if (/^0x[0-9a-fA-F]{40}$/.test(cleaned)) {
+    try {
+      return ethers.getAddress(cleaned.toLowerCase());
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
