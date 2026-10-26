@@ -13,7 +13,7 @@ import {
   DOC_TYPE_LABELS,
   DISPUTE_REASON_LABELS,
 } from "@/contracts/config";
-import { getContracts, executeTransaction, TxStatus } from "@/lib/web3";
+import { getContracts, executeTransaction, TxStatus, normalizeEvmAddress } from "@/lib/web3";
 import { TxModal } from "@/components/ui/TxModal";
 import { MLEtaPredictionCard } from "@/components/MLEtaPredictionCard";
 import {
@@ -297,13 +297,19 @@ export default function ShipmentConsolePage() {
     e.preventDefault();
     setActionModal(null);
     try {
+      const normalizedAddr = normalizeEvmAddress(transferCustodianAddr);
+      if (!normalizedAddr) {
+        alert("Please enter a valid 40-hex Ethereum address.");
+        return;
+      }
+
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
       const contracts = getContracts(signer);
 
       await executeTransaction(
         "Transfer Custody",
-        () => contracts.trackingManager.transferCustody(shipmentId, transferCustodianAddr.trim()),
+        () => contracts.trackingManager.transferCustody(shipmentId, normalizedAddr),
         setTxStatus
       );
     } catch (e) {
@@ -1274,6 +1280,38 @@ export default function ShipmentConsolePage() {
                 <span className="text-[10px] text-slate-400">
                   Recipient must be an active registered participant.
                 </span>
+
+                {/* Quick select stakeholder suggestion pills */}
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-slate-400 font-semibold">Quick Select:</span>
+                  {shipment.transporter && (
+                    <button
+                      type="button"
+                      onClick={() => setTransferCustodianAddr(shipment.transporter)}
+                      className="px-2.5 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded-lg text-[10px] font-semibold hover:bg-indigo-500/20 transition-colors"
+                    >
+                      Transporter (Account 2)
+                    </button>
+                  )}
+                  {shipment.warehouse && shipment.warehouse !== ethers.ZeroAddress && (
+                    <button
+                      type="button"
+                      onClick={() => setTransferCustodianAddr(shipment.warehouse)}
+                      className="px-2.5 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 rounded-lg text-[10px] font-semibold hover:bg-cyan-500/20 transition-colors"
+                    >
+                      Warehouse (Account 3)
+                    </button>
+                  )}
+                  {shipment.receiver && (
+                    <button
+                      type="button"
+                      onClick={() => setTransferCustodianAddr(shipment.receiver)}
+                      className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-[10px] font-semibold hover:bg-emerald-500/20 transition-colors"
+                    >
+                      Receiver (Account 5)
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
