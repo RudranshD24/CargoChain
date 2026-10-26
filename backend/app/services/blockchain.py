@@ -2,6 +2,7 @@
 
 import json
 import os
+from pathlib import Path
 from typing import Dict, Any, Optional
 from web3 import Web3
 from app.config import settings
@@ -9,16 +10,19 @@ from app.config import settings
 # Shared web3 instance with short timeout for responsiveness
 w3 = Web3(Web3.HTTPProvider(settings.rpc_url, request_kwargs={"timeout": 0.5}))
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
 
 def get_deployment_metadata() -> Dict[str, Any]:
     """Load deployment metadata from deployments/local.json."""
     possible_paths = [
-        settings.deployment_file,
-        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "deployments", "local.json"),
-        os.path.abspath("deployments/local.json"),
+        PROJECT_ROOT / "deployments" / "local.json",
+        Path(settings.deployment_file),
+        PROJECT_ROOT / "backend" / "deployments" / "local.json",
+        Path("deployments/local.json"),
     ]
     for p in possible_paths:
-        if os.path.exists(p):
+        if p.exists():
             with open(p, "r", encoding="utf-8") as f:
                 return json.load(f)
     return {"contracts": {}, "deploymentBlock": 0}
@@ -27,11 +31,12 @@ def get_deployment_metadata() -> Dict[str, Any]:
 def get_contract_abi(contract_name: str) -> Optional[list]:
     """Load ABI for a given contract from contracts/abi/."""
     possible_paths = [
-        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "contracts", "abi", f"{contract_name}.json"),
-        os.path.abspath(f"contracts/abi/{contract_name}.json"),
+        PROJECT_ROOT / "contracts" / "abi" / f"{contract_name}.json",
+        PROJECT_ROOT / "frontend" / "src" / "contracts" / "abi" / f"{contract_name}.json",
+        Path(f"contracts/abi/{contract_name}.json"),
     ]
     for p in possible_paths:
-        if os.path.exists(p):
+        if p.exists():
             with open(p, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return data.get("abi", data)

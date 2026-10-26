@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Boxes,
   Coins,
+  RefreshCw,
 } from "lucide-react";
 
 export default function ShipmentsPage() {
@@ -94,15 +95,28 @@ export default function ShipmentsPage() {
           </p>
         </div>
 
-        {(isShipper || isAdmin) && (
-          <Link
-            href="/shipments/new"
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors w-fit"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setLoading(true);
+              api.triggerSync().catch(() => {}).finally(() => fetchShipments());
+            }}
+            title="Sync Latest Blockchain Blocks"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
           >
-            <PlusCircle className="w-4 h-4" />
-            Create Shipment
-          </Link>
-        )}
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Sync Chain
+          </button>
+          {(isShipper || isAdmin) && (
+            <Link
+              href="/shipments/new"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors w-fit"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Create Shipment
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filters and Search Bar */}

@@ -45,7 +45,36 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
     except Exception:
         pass
+
+    import asyncio
+    from app.services.indexer import EventIndexer
+
+    # Initial sync on boot
+    try:
+        with SessionLocal() as db:
+            EventIndexer(db).sync_events()
+    except Exception:
+        pass
+
+    # Continuous background poller (every 2 seconds)
+    async def poll_blockchain_events():
+        while True:
+            try:
+                await asyncio.sleep(2)
+                with SessionLocal() as db:
+                    EventIndexer(db).sync_events()
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                await asyncio.sleep(2)
+
+    bg_task = asyncio.create_task(poll_blockchain_events())
     yield
+    bg_task.cancel()
+    try:
+        await bg_task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(

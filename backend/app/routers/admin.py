@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.entities import User, ChainEvent
 from app.schemas import AuditEventItem, AuditListResponse
-from app.services.auth import require_roles
+from app.services.auth import require_roles, get_current_user
 from app.services.indexer import EventIndexer
 
 router = APIRouter(tags=["admin"])
@@ -78,11 +78,12 @@ def trigger_reindex(
 
 
 @router.post("/admin/sync")
+@router.post("/sync")
 def trigger_sync(
-    admin: User = Depends(require_roles(1)),  # Admin only
+    user: User = Depends(get_current_user),  # Any authenticated stakeholder
     db: Session = Depends(get_db),
 ):
-    """Synchronize latest blocks into the indexer (Admin only)."""
+    """Synchronize latest blocks into the indexer."""
     indexer = EventIndexer(db)
     processed = indexer.sync_events()
     return {"status": "synced", "processedEvents": processed}
