@@ -119,6 +119,7 @@ class ShipmentItem(BaseModel):
     expectedDelivery: int
     deliveredAt: Optional[int] = None
     paymentAmountWei: str
+    paymentAmount: Optional[str] = None
     createdBlock: int
     createdAt: str
 

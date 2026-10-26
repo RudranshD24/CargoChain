@@ -152,6 +152,11 @@ export default function ShipmentConsolePage() {
   const statusLabel = STATUS_LABELS[currentStatus] || `Status ${currentStatus}`;
   const badgeClass = STATUS_BADGE_CLASSES[currentStatus] || "bg-slate-100 text-slate-800";
 
+  // Escrow state helpers
+  const paymentAmountWei = shipment.paymentAmountWei || shipment.paymentAmount || "0";
+  const hasEscrowRequirement = BigInt(paymentAmountWei) > BigInt(0);
+  const isEscrowDeposited = Boolean(escrow?.deposited);
+
   // ──────── Contract Action Handlers ────────
 
   const handleTransporterAccept = async () => {
@@ -348,14 +353,14 @@ export default function ShipmentConsolePage() {
       const signer = await provider.getSigner();
       const contracts = getContracts(signer);
 
-      const amountWei = BigInt(shipment.paymentAmount || "0");
+      const amountWei = BigInt(paymentAmountWei);
       if (amountWei === BigInt(0)) {
         alert("This shipment does not require an escrow payment deposit.");
         return;
       }
 
       await executeTransaction(
-        "Deposit Escrow Payment (Test-ETH)",
+        `Deposit Escrow Payment (${ethers.formatEther(amountWei)} Test-ETH)`,
         () => contracts.escrowManager.deposit(shipmentId, { value: amountWei }),
         setTxStatus
       );
@@ -588,21 +593,21 @@ export default function ShipmentConsolePage() {
           )}
 
           {/* Escrow deposit requirement before dispatch when paymentAmount > 0 */}
-          {currentStatus === 1 && Number(shipment.paymentAmount || "0") > 0 && !escrow?.deposited && (
+          {currentStatus === 1 && hasEscrowRequirement && !isEscrowDeposited && (
             <>
               {isShipper && (
                 <button
                   onClick={handleDepositEscrow}
-                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5 animate-pulse"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-1.5 animate-pulse"
                 >
-                  <Coins className="w-3.5 h-3.5" />
-                  Deposit {ethers.formatEther(shipment.paymentAmount)} ETH Escrow
+                  <Coins className="w-4 h-4" />
+                  Deposit {ethers.formatEther(paymentAmountWei)} ETH Escrow
                 </button>
               )}
               {isTransporter && (
                 <span className="text-xs text-amber-700 dark:text-amber-300 font-medium bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-900 flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  Escrow Required &bull; Switch to <strong>Account 1 (Shipper)</strong> to deposit {ethers.formatEther(shipment.paymentAmount)} ETH into Escrow before dispatch.
+                  Escrow Required &bull; Switch to <strong>Account 1 (Shipper)</strong> to deposit {ethers.formatEther(paymentAmountWei)} ETH into Escrow before dispatch.
                 </span>
               )}
             </>
@@ -611,7 +616,12 @@ export default function ShipmentConsolePage() {
           {isTransporter && currentStatus === 1 && (
             <button
               onClick={handleStartTransit}
-              disabled={Number(shipment.paymentAmount || "0") > 0 && !escrow?.deposited}
+              disabled={hasEscrowRequirement && !isEscrowDeposited}
+              title={
+                hasEscrowRequirement && !isEscrowDeposited
+                  ? "Escrow deposit required before dispatch. Switch to Account 1 (Shipper) to deposit."
+                  : undefined
+              }
               className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5"
             >
               <Truck className="w-3.5 h-3.5" />
@@ -1155,10 +1165,10 @@ export default function ShipmentConsolePage() {
               <div className="text-xl font-black text-slate-900 dark:text-white">
                 {escrow?.amountWei
                   ? `${ethers.formatEther(escrow.amountWei)} Test ETH`
-                  : `${ethers.formatEther(shipment.paymentAmount || "0")} Test ETH`}
+                  : `${ethers.formatEther(paymentAmountWei)} Test ETH`}
               </div>
               <span className="font-mono text-[10px] text-slate-500">
-                {escrow?.amountWei || shipment.paymentAmount} wei
+                {escrow?.amountWei || paymentAmountWei} wei
               </span>
             </div>
 
@@ -1183,12 +1193,12 @@ export default function ShipmentConsolePage() {
 
           {/* Escrow Actions */}
           <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-wrap items-center gap-3">
-            {isShipper && !escrow?.deposited && Number(shipment.paymentAmount) > 0 && (
+            {isShipper && !isEscrowDeposited && hasEscrowRequirement && (
               <button
                 onClick={handleDepositEscrow}
                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20"
               >
-                Deposit {ethers.formatEther(shipment.paymentAmount)} Test-ETH into Escrow
+                Deposit {ethers.formatEther(paymentAmountWei)} Test-ETH into Escrow
               </button>
             )}
 

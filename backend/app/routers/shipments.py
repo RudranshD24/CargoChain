@@ -75,6 +75,7 @@ def shipment_to_item(s: Shipment) -> ShipmentItem:
         expectedDelivery=s.expected_delivery,
         deliveredAt=s.delivered_at,
         paymentAmountWei=str(s.payment_amount),
+        paymentAmount=str(s.payment_amount),
         createdBlock=s.created_block,
         createdAt=s.created_at.isoformat() if s.created_at else "",
     )

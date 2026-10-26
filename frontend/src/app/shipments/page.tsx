@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
+import { ethers } from "ethers";
 import { api } from "@/lib/api";
 import { STATUS_LABELS, STATUS_BADGE_CLASSES } from "@/contracts/config";
 import {
@@ -192,7 +193,8 @@ export default function ShipmentsPage() {
                 {shipments.map((s) => {
                   const statusLabel = STATUS_LABELS[s.status] || `Status ${s.status}`;
                   const badgeClass = STATUS_BADGE_CLASSES[s.status] || "bg-slate-100 text-slate-800";
-                  const hasEscrow = s.paymentAmount && s.paymentAmount !== "0";
+                  const escrowWei = s.paymentAmountWei || s.paymentAmount || "0";
+                  const hasEscrow = BigInt(escrowWei) > BigInt(0);
 
                   return (
                     <tr key={s.shipmentId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
@@ -220,9 +222,9 @@ export default function ShipmentsPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         {hasEscrow ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-cyan-600 dark:text-cyan-400">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400">
                             <Coins className="w-3.5 h-3.5" />
-                            Funded
+                            {ethers.formatEther(escrowWei)} ETH
                           </span>
                         ) : (
                           <span className="text-slate-400 text-[11px]">None</span>
